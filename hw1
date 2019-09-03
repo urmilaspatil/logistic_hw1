@@ -1,0 +1,152 @@
+%let path =C:\Users\urmil\Desktop\Log_reg_hw;
+libname Hw1 "&path";
+
+proc print  data=HW1.INSURANCE_T (obs=10) ;
+run;
+
+proc freq data=HW1.INSURANCE_T;
+tables pos;
+run;
+
+
+proc contents data=hw1.insurance_t;
+run;
+
+proc univariate data=hw1.insurance_t;
+var LOCBAL;
+run;
+
+* Continuous var : 
+ACCTAGE DDABAL DEP DEPAMT CHECKS NSFAMT PHONE TELLER
+look for Likelihood Ratio pval from 'Testing Global Null Hypothesis'table;
+
+proc logistic data=HW1.INSURANCE_T alpha=0.002
+              plots(only)=(effect oddsratio);
+    model INS(event='1')=ACCTAGE / clodds=pl;
+    title 'LOGISTIC MODEL (1):INS=ACCTAGE';
+Run;
+
+*Binary var:
+DDA NSF DIRDEP
+look for pval of Mantel-Haenszel Chi-Square;
+proc freq data=HW1.INSURANCE_T;
+    tables DIRDEP*ins / chisq measures cl;
+    title 'Ordinal Association between DIRDEP and ins?';
+run;
+
+*ordinal var :
+CASHBK
+look for pval of Mantel-Haenszel Chi-Square;
+proc freq data=HW1.INSURANCE_T;
+    tables CASHBK*ins / chisq measures cl;
+    title 'Ordinal Association between CASHBK and ins?';
+run;
+
+*************************Part B*************************;
+
+*Binary var:
+DDA NSF DIRDEP
+look for odd ratio;
+
+proc logistic data=HW1.INSURANCE_T alpha=0.002
+              plots(only)=(effect oddsratio);
+    model INS(event='1')=NSF / clodds=pl;
+    title 'LOGISTIC MODEL (1):NSF=ACCTAGE';
+Run;
+
+*which is same as below : ;
+
+proc logistic data=HW1.INSURANCE_T plots(only)=(effect oddsratio);
+    class NSF(ref='0')  / param=ref;
+    model INS(event='1')=NSF   / clodds=pl;
+  run;
+
+**********************Part c  Assumption ******************;
+*Box-Tidwell Transformation;
+*do not use this method if variable has 0 or -ve values;
+data INSURANCE_T;
+set HW1.INSURANCE_T;
+LOCBALlog = LOCBAL*log(LOCBAL);
+run;
+
+proc logistic data=INSURANCE_T plots(only)=(oddsratio);
+model ins(event='1') = LOCBAL LOCBALlog  /
+clodds=pl clparm=pl;
+run;
+quit;
+
+*General Additive Model (GAM);
+proc gam data=HW1.INSURANCE_T
+plots = components(clm commonaxes);
+model ins(event='1') = spline(DEP, df=4)
+/ dist = binomial link = logit;
+run;
+
+
+proc print  data=HW1.INSURANCE_T;
+var DEPAMT;
+
+
+
+ACCTAGE DDA DDABAL  DEP DEPAMT CASHBK CHECKS DIRDEP  NSF NSFAMT PHONE TELLER
+SAV SAVBAL ATM ATMAMT POS POSAMT CD CDBAL IRA IRABAL LOC LOCBAL INV INVBAL ILS
+ILSBAL MM MMBAL MMCRED MTG MTGBAL CC CCBAL  CCPURC SDB INCOME HMOWN LORES HMVAL AGE
+CRSCORE MOVED INAREA  BRANCH RES 
+
+(ACCTAGE DDA DDABAL  DEP DEPAMT CASHBK CHECKS DIRDEP  NSF NSFAMT PHONE TELLER
+SAV SAVBAL ATM ATMAMT POS POSAMT CD CDBAL IRA IRABAL LOC LOCBAL INV INVBAL ILS
+ILSBAL MM MMBAL MMCRED MTG MTGBAL CC CCBAL  CCPURC SDB INCOME HMOWN LORES HMVAL AGE
+CRSCORE MOVED INAREA  BRANCH RES );
+
+
+
+proc means data=INSURANCE_T NMISS N; run;
+
+proc gam data=hw1.INSURANCE_T
+        plots = components(clm commonaxes);
+    model ins(event='1') = spline(LOCBAL, df=4)
+    / dist = binomial link = logit;
+title 'Continuous Var Association: SAVBAL';
+run;
+
+*************************************;
+
+proc print data=hw1.insurance_t;
+var AGE;
+run;
+ 
+data ddabal1;
+set  hw1.insurance_t;
+where ddabal ne 0;
+run;
+
+*Box-Tidwell Transformation;
+*do not use this method if variable has 0 or -ve values;
+data insubxrance_tbx;
+set ddabal1;
+ddaballogdda = ddabal*log(ddabal);
+run;
+
+proc logistic data=insubxrance_tbx plots(only)=(oddsratio);
+model ins(event='1') = ddabal ddaballogdda  /
+clodds=pl clparm=pl;
+run;
+quit;
+
+
+data DEPAMT1;
+set  hw1.insurance_t;
+where DEPAMT ne 0;
+run;
+data insubxrance_tbxdep;
+set DEPAMT1;
+DEPAMTlogdpa = DEPAMT*log(DEPAMT);
+run;
+
+proc logistic data=insubxrance_tbxdep plots(only)=(oddsratio);
+model ins(event='1') = DEPAMT DEPAMTlogdpa  /
+clodds=pl clparm=pl;
+run;
+
+
+
